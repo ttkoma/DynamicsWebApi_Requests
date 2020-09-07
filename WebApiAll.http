@@ -1,0 +1,101 @@
+@fetch = <fetch page="1" count="4" no-lock="true" distinct="true"><entity name="incident"><attribute name="customerid" /><link-entity name="account" from="accountid" to="customerid" link-type="outer"><attribute name="telephone2" /><attribute name="modifiedby" /><attribute name="accountnumber" /><attribute name="accountid" /></link-entity><attribute name="sd_type" /><filter type="and"><condition attribute="caseorigincode" operator="in"><value>899090003</value><value>930660005</value><value>930660000</value></condition></filter></entity></fetch>
+
+
+# @name whoami
+GET https://{{crmApi}}/WhoAmI
+Accept: application/json
+OData-Version: 4.0
+OData-MaxVersion: 4.0
+###
+
+# @name systemuser
+GET https://{{crmApi}}/systemusers({{whoami.response.body.UserId}})
+    ?$select=entityimage_url,fullname,organizationid
+Accept: application/json
+OData-Version: 4.0
+OData-MaxVersion: 4.0
+Prefer: odata.include-annotations=*
+###
+
+# @name RetrieveMultiple
+GET https://{{crmApi}}/incidents
+    ?$select=_gm_houseid_value,_customerid_value
+    &$expand=customerid_account($select=*),createdby($select=*)
+Accept: application/json;odata.metadata=minimal
+Prefer: odata.include-annotations="*", odata.maxpagesize=4 
+
+###
+# @name RetrieveMultiple_Page2
+GET https://{{crmApi}}/incidents
+    ?$select=incidentid
+    &$skiptoken=<cookie pagenumber="1" pagingcookie="" istracking="False" />
+Accept: application/json;odata.metadata=minimal
+Prefer: odata.include-annotations="*", odata.maxpagesize=4 
+
+# @name accountByLs
+GET https://{{crmApi}}/accounts(accountnumber='80108')
+    ?$select=_gm_regionid_value
+    &$expand=gm_regionid($select=*),createdby($select=*)
+Accept: application/json;odata.metadata=minimal
+Prefer: odata.include-annotations="*", odata.maxpagesize=4 
+
+###
+
+
+# @name clearLookupProperty
+DELETE https://{{crmApi}}/accounts({{accountByLs.response.body.accountid}})/gm_regionid/$ref
+OData-Version: 4.0
+OData-MaxVersion: 4.0
+Content-type: application/json
+###
+
+# @name getLookupProperty
+GET  https://{{crmApi}}/accounts({{accountByLs.response.body.accountid}})/gm_regionid/$ref
+OData-Version: 4.0
+OData-MaxVersion: 4.0
+Content-type: application/json
+###
+
+# @name setOnlyLookupProperty
+PUT https://{{crmApi}}/accounts({{accountByLs.response.body.accountid}})/gm_regionid/$ref
+OData-Version: 4.0
+OData-MaxVersion: 4.0
+Content-type: application/json
+
+{
+    "@odata.context": "https://msk-precrm-web.nbn-holding.ru/nbnh/api/data/v8.2/",
+    "@odata.id": "gm_regions(gm_fiasguid='639efe9d-3fc8-4438-8e70-ec4f2321f2a7')"
+}
+###
+
+###
+# @name UpdateEntity
+PATCH https://{{crmApi}}/accounts({{accountByLs.response.body.accountid}})
+OData-Version: 4.0
+OData-MaxVersion: 4.0
+Content-type: application/json
+
+{
+    "@odata.context": "https://{{crmApi}}",
+    "gm_regionid@odata.bind": "gm_regions(gm_fiasguid='639efe9d-3fc8-4438-8e70-ec4f2321f2a7')",
+    "gm_facebook": "fasebook.com"
+}
+###
+# @name ExecuteFetch
+GET https://{{crmApi}}/incidents
+    ?fetchXml={{fetch}}
+Accept: application/json;odata.metadata=minimal;odata.streaming=true
+OData-Version: 4.0
+OData-MaxVersion: 4.0
+Prefer: odata.include-annotations="*"
+
+###
+# @name FetchXmlToQueryExpression
+GET https://{{crmApi}}/FetchXmlToQueryExpression(FetchXml=@p1)
+    ?@p1='{{fetch}}'
+
+
+### 
+# @name Search
+GET  https://{{crmApi}}/Search(AppointmentRequest=@p1)
+    ?@p1={"NumberOfResults":50,"SearchWindowStart":"2019-09-18T00:00:00%2B00:00","SearchWindowEnd":"2019-09-19T00:00:00%2B00:00","UserTimeZoneCode":145,"Duration":60 }
